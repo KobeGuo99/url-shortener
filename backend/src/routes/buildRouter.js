@@ -18,7 +18,18 @@ function buildRouter({ urlService, analyticsService, rateLimiter, staticDir }) {
       autoLogging: env.NODE_ENV !== 'test',
     }),
   );
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          // Only ask browsers to upgrade HTTP requests when the app itself is
+          // being served over HTTPS. On plain HTTP EC2 hosts, forcing upgrades
+          // breaks JS/CSS asset loads and leaves the page blank.
+          'upgrade-insecure-requests': env.BASE_URL.startsWith('https://') ? [] : null,
+        },
+      },
+    }),
+  );
   app.use(
     cors({
       origin: env.CORS_ORIGIN,
