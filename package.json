@@ -1,0 +1,22 @@
+{
+  "name": "url-shortener",
+  "version": "1.0.0",
+  "description": "FAANG-style portfolio URL shortener",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "loadtest": "node scripts/loadtest.js",
+    "test": "npm --prefix backend run test",
+    "start": "npm --prefix backend run start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "autocannon": "^8.0.0",
+    "concurrently": "^9.2.1"
+  }
+}

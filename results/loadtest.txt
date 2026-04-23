@@ -1,0 +1,9 @@
+
+Summary
+Target URL: http://localhost:8080/H6SsviB
+Requests/sec (avg): 5998.77
+Latency p99: 50 ms
+Error rate: 0.00%
+3xx responses: 179931
+4xx responses: 0
+5xx responses: 0
