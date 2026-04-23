@@ -9,17 +9,19 @@ fi
 KEY_PATH="$1"
 EC2_HOST="$2"
 REMOTE_DIR="/home/ec2-user/url-shortener"
+SSH_OPTS="-o StrictHostKeyChecking=accept-new -i ${KEY_PATH}"
 
 rsync -avz \
   --exclude ".git" \
+  --exclude ".env" \
   --exclude "node_modules" \
   --exclude "frontend/node_modules" \
   --exclude "backend/node_modules" \
   --exclude "frontend/dist" \
-  -e "ssh -i ${KEY_PATH}" \
+  -e "ssh ${SSH_OPTS}" \
   ./ "ec2-user@${EC2_HOST}:${REMOTE_DIR}"
 
-ssh -i "${KEY_PATH}" "ec2-user@${EC2_HOST}" <<'EOF'
+ssh ${SSH_OPTS} "ec2-user@${EC2_HOST}" <<'EOF'
 set -euo pipefail
 cd /home/ec2-user/url-shortener
 npm install

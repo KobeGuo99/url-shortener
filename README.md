@@ -211,11 +211,18 @@ CORS_ORIGIN=http://localhost:5173
 
 ## AWS Deployment Status
 
-Deployment was prepared but could not be completed from this machine on April 23, 2026 because no AWS credentials or configured CLI profile were present. The repository includes deployment-ready scripts and pm2 config for the EC2 path:
+The app is deployed on Amazon Linux 2023 on a `t2.micro` EC2 instance in `us-east-1` and is running under `pm2`, with PostgreSQL and Redis managed by Docker Compose on the host.
+
+- EC2 public DNS: `ec2-34-235-118-239.compute-1.amazonaws.com`
+- Health check: `http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/health`
+- Live shorten endpoint: `http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/shorten`
+- Live demo short URL created during deployment verification: `http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/ZeDPCTY`
+
+Deployment assets used:
 
 - [ecosystem.config.cjs](/Users/kobeguo/Desktop/projects/url-shortener/ecosystem.config.cjs)
 - [scripts/bootstrap-ec2.sh](/Users/kobeguo/Desktop/projects/url-shortener/scripts/bootstrap-ec2.sh)
 - [scripts/deploy-ec2.sh](/Users/kobeguo/Desktop/projects/url-shortener/scripts/deploy-ec2.sh)
 
 `Live demo URL`
-Not available yet because the AWS account was not authenticated in this environment.
+http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/
