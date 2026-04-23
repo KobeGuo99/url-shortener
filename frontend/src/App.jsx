@@ -81,13 +81,25 @@ function App() {
     }
   }
 
-  async function handleCopy() {
-    if (!shortenResult?.shortUrl) {
-      return;
+  function handleCopy(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text);
+    } else {
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.focus();
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
     }
 
-    await navigator.clipboard.writeText(shortenResult.shortUrl);
     setIsCopied(true);
+    window.setTimeout(() => {
+      setIsCopied(false);
+    }, 2000);
   }
 
   return (
@@ -190,10 +202,10 @@ function App() {
                   </a>
                   <button
                     type="button"
-                    onClick={handleCopy}
+                    onClick={() => handleCopy(shortenResult.shortUrl)}
                     className="rounded-full border border-brand-300 px-4 py-2 font-medium text-brand-700 transition hover:bg-white"
                   >
-                    {isCopied ? 'Copied' : 'Copy'}
+                    {isCopied ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
                 <p className="mt-3 text-sm text-slate-600">
