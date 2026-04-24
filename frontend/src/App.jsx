@@ -108,12 +108,15 @@ function App() {
         <header className="grid gap-8 rounded-[2rem] border border-white/60 bg-white/80 p-8 shadow-card backdrop-blur animate-rise lg:grid-cols-[1.2fr_0.8fr] lg:p-12">
           <div className="space-y-6">
             <p className="font-mono text-sm uppercase tracking-[0.32em] text-brand-600">
-              URL infrastructure portfolio build
+              Linklift - URL shortener
             </p>
             <div className="space-y-4">
               <h1 className="max-w-3xl text-5xl font-semibold leading-tight md:text-6xl">
-                Ship links that stay fast under pressure.
+                A URL shortener I built from scratch.
               </h1>
+              <p className="font-mono text-sm uppercase tracking-[0.28em] text-slate-500">
+                Built by Kobe Guo
+              </p>
               <p className="max-w-2xl text-lg leading-8 text-slate-600">
                 A production-style URL shortener with Redis cache-aside lookups,
                 PostgreSQL persistence, Redis-backed rate limiting, and click analytics.
