@@ -2,7 +2,7 @@
 
 I built this project as a more serious take on the classic URL shortener. I wanted something that still felt approachable as a portfolio piece, but also gave me room to show system design decisions I actually care about: caching, rate limiting, analytics, deployment, and production debugging.
 
-Live site: [http://3.219.205.122:8080/](http://3.219.205.122:8080/)
+Live site: [https://3.219.205.122/](https://3.219.205.122/)
 
 ## Why I Built It
 
@@ -18,8 +18,8 @@ My goals were:
 
 ## Live Demo
 
-- App: [http://3.219.205.122:8080/](http://3.219.205.122:8080/)
-- Health check: [http://3.219.205.122:8080/health](http://3.219.205.122:8080/health)
+- App: [https://3.219.205.122/](https://3.219.205.122/)
+- Health check: [https://3.219.205.122/health](https://3.219.205.122/health)
 
 ## What It Does
 
@@ -42,7 +42,7 @@ My goals were:
 | Testing | Jest, Supertest |
 | Load testing | autocannon |
 | Local infrastructure | Docker Compose |
-| Deployment | AWS EC2, pm2 |
+| Deployment | AWS EC2, Nginx, Let's Encrypt, pm2 |
 
 ## Architecture
 
@@ -224,9 +224,11 @@ I deployed this on an Amazon Linux 2023 EC2 instance in `us-east-1`.
 
 Production setup:
 
+- Nginx terminating HTTPS on `443` and redirecting `80` to `443`
 - Express backend managed with `pm2`
 - Redis and PostgreSQL running through Docker Compose on the EC2 host
 - React frontend built with Vite and served from the backend
+- Let's Encrypt short-lived IP certificate with automated renewal
 
 Deployment-related files:
 
@@ -239,6 +241,7 @@ One thing I actually liked about this project is that deployment was not complet
 - I had to fix Docker Compose installation on Amazon Linux 2023
 - I had to debug a blank page issue caused by CSP upgrading HTTP asset requests to HTTPS on port `8080`
 - I had to add an HTTP-safe clipboard fallback because `navigator.clipboard` is restricted on non-secure origins
+- I ended up finishing the deployment with Nginx in front of the app, a real HTTPS certificate for the Elastic IP, and automated certificate renewal
 
 That debugging work ended up being one of the most valuable parts of the project.
 
@@ -247,7 +250,7 @@ That debugging work ended up being one of the most valuable parts of the project
 If I kept iterating on this, I’d probably add:
 
 - a custom domain
-- HTTPS with Nginx or an Application Load Balancer
+- an ALB or CloudFront in front of the instance
 - user accounts or ownership for short links
 - expiration policies for links
 - more detailed analytics
