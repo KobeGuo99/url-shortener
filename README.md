@@ -2,7 +2,7 @@
 
 I built this project as a more serious take on the classic URL shortener. I wanted something that still felt approachable as a portfolio piece, but also gave me room to show system design decisions I actually care about: caching, rate limiting, analytics, deployment, and production debugging.
 
-Live site: [http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/](http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/)
+Live site: [http://3.219.205.122:8080/](http://3.219.205.122:8080/)
 
 ## Why I Built It
 
@@ -18,8 +18,8 @@ My goals were:
 
 ## Live Demo
 
-- App: [http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/](http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/)
-- Health check: [http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/health](http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/health)
+- App: [http://3.219.205.122:8080/](http://3.219.205.122:8080/)
+- Health check: [http://3.219.205.122:8080/health](http://3.219.205.122:8080/health)
 
 ## What It Does
 
