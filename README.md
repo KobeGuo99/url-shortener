@@ -1,140 +1,112 @@
 # LinkLift URL Shortener
 
-LinkLift is a production-style URL shortener built to showcase backend fundamentals that come up in high-signal software engineering interviews: caching strategy, persistence modeling, rate limiting, analytics capture, deployment readiness, and end-to-end operational verification.
+I built this project as a more serious take on the classic URL shortener. I wanted something that still felt approachable as a portfolio piece, but also gave me room to show system design decisions I actually care about: caching, rate limiting, analytics, deployment, and production debugging.
 
-The project was built with an Express API, Redis cache-aside reads, PostgreSQL persistence, a React + Vite frontend, Docker Compose for local infrastructure, Jest unit tests, and `autocannon` load testing. The backend serves the production frontend build so the deployed shape can stay simple on a single EC2 host.
+Live site: [http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/](http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/)
 
-## Motivation
+## Why I Built It
 
-Most portfolio URL shorteners stop at a CRUD demo. This one is intentionally engineered as a systems-flavored project:
+A lot of URL shortener projects stop at “store a URL and redirect it.” I wanted this one to go further.
 
-- fast redirect path backed by Redis
-- durable source of truth in PostgreSQL
-- analytics trail for product instrumentation
-- Redis-backed per-IP rate limiting
-- Dockerized local infrastructure
-- production build served by the backend
+My goals were:
 
-## Architecture
+- build a backend with a clear separation between routing, services, repositories, and infrastructure
+- use Redis for a real performance optimization instead of including it just to list it on the stack
+- keep PostgreSQL as the source of truth for URLs and click history
+- add analytics and rate limiting so the project feels more like a real product
+- deploy it myself to AWS and deal with the operational issues that come with that
 
-### Request flow
+## Live Demo
 
-```text
-Browser / API client
-        |
-        v
-Express server (helmet, CORS, logging)
-        |
-        +--> Redis rate limiter
-        |       key: ratelimit:{ip}
-        |       ttl: 60 seconds
-        |
-        +--> POST /shorten
-        |       validate URL
-        |       generate unique short code
-        |       write to PostgreSQL urls table
-        |       warm Redis cache
-        |
-        +--> GET /:code
-        |       read-through cache-aside lookup in Redis
-        |       fallback to PostgreSQL on miss
-        |       cache result for 24 hours
-        |       redirect client
-        |       async insert into PostgreSQL clicks table
-        |
-        +--> GET /analytics/:code
-                query PostgreSQL for aggregate count + recent click rows
-```
+- App: [http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/](http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/)
+- Health check: [http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/health](http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/health)
 
-### Design notes
+## What It Does
 
-`Cache-aside pattern`
-The redirect path checks Redis first for `url:{shortCode}`. On a cache miss, the backend reads PostgreSQL, returns the redirect target, and writes the result back into Redis with a 24 hour TTL. This keeps hot links fast without making Redis the source of truth.
-
-`Why PostgreSQL over MongoDB`
-The core entities here are relational and query-friendly: a canonical `urls` table and an append-only `clicks` table keyed by `short_code`. PostgreSQL gives strong constraints, straightforward indexing, and simple aggregation for analytics queries without introducing document-shape flexibility that the workload does not need.
-
-`Redis TTL tradeoff`
-A 24 hour TTL keeps frequently requested URLs hot while allowing cache contents to age out automatically. A shorter TTL would reduce memory pressure but increase miss traffic; a longer TTL would improve hit rate at the cost of more stale occupancy in Redis.
-
-`Rate limiting design`
-Every limited request increments `ratelimit:{ip}` in Redis. The first request sets a 60 second expiry, and once the counter exceeds 10 the API returns `429` with a clear error message. This keeps the limiter centralized, fast, and horizontally friendly if the API is later scaled beyond one instance.
-
-## Schema
-
-`urls`
-
-| Column | Type | Notes |
-| --- | --- | --- |
-| id | uuid | primary key |
-| short_code | varchar | unique |
-| original_url | text | destination URL |
-| created_at | timestamp | creation timestamp |
-
-`clicks`
-
-| Column | Type | Notes |
-| --- | --- | --- |
-| id | uuid | primary key |
-| short_code | varchar | foreign key to `urls.short_code` |
-| clicked_at | timestamp | click timestamp |
-| user_agent | text | client metadata |
-| ip | varchar | client IP |
-
-## Real Verification Results
-
-### Local environment
-
-- Node.js: `v25.9.0`
-- npm: `11.12.1`
-- Docker: `29.3.0`
-- Docker Compose: `v5.1.0`
-- AWS CLI: user-scoped install repaired locally as `aws-cli/1.44.84`
-
-### Local service verification
-
-- Docker Compose started successfully with healthy PostgreSQL and Redis containers.
-- PostgreSQL was mapped to `localhost:5433` because `5432` was already occupied on this machine during setup.
-- `POST /shorten` created live short codes including `H6SsviB` and `sFanY96`.
-- `GET /:code` returned `302` redirects and hydrated Redis cache entries such as `url:H6SsviB`.
-- Rate limiting returned `429` on the 11th request within the 60 second window for the same client IP.
-- `GET /analytics/H6SsviB` returned live click totals and the last 10 click records with IP and user-agent metadata.
-- Jest suite passed: `5` test suites, `9` tests.
-- Vite dev server successfully proxied API requests through `http://localhost:5173`.
-
-### Load test
-
-Benchmark command shape:
-
-```bash
-npm run loadtest
-```
-
-Measured on April 23, 2026 against `GET /H6SsviB` with `100` concurrent connections for `30` seconds:
-
-| Metric | Result |
-| --- | --- |
-| Average requests/sec | `5998.77` |
-| p99 latency | `50 ms` |
-| Error rate | `0.00%` |
-| 3xx responses | `179931` |
-| 4xx responses | `0` |
-| 5xx responses | `0` |
-
-Raw output is saved to [results/loadtest.txt](/Users/kobeguo/Desktop/projects/url-shortener/results/loadtest.txt).
+- Shortens long URLs through `POST /shorten`
+- Redirects short codes through `GET /:code`
+- Uses Redis with a cache-aside pattern for hot URL lookups
+- Tracks click metadata in PostgreSQL
+- Exposes analytics through `GET /analytics/:code`
+- Rate limits requests per IP using Redis
+- Serves the React frontend from the Express server in production
 
 ## Tech Stack
 
 | Layer | Technology |
 | --- | --- |
-| Backend API | Node.js, Express |
-| Cache / limiter | Redis |
-| Persistent store | PostgreSQL |
+| Backend | Node.js, Express |
+| Database | PostgreSQL |
+| Cache / rate limiting | Redis |
 | Frontend | React, Vite, Tailwind CSS |
 | Testing | Jest, Supertest |
-| Benchmarking | autocannon |
-| Local infra | Docker, Docker Compose |
-| Deployment target | AWS EC2 + pm2 |
+| Load testing | autocannon |
+| Local infrastructure | Docker Compose |
+| Deployment | AWS EC2, pm2 |
+
+## Architecture
+
+At a high level, the request flow looks like this:
+
+```text
+Client
+  -> Express API
+    -> Redis rate limiter
+    -> POST /shorten -> PostgreSQL
+    -> GET /:code -> Redis cache -> PostgreSQL fallback
+    -> async analytics write -> clicks table
+    -> GET /analytics/:code -> PostgreSQL aggregation
+```
+
+## Design Decisions
+
+### Redis cache-aside
+
+For redirects, I check Redis first. If the short code is already cached, the backend can redirect immediately. If it is not cached, I read from PostgreSQL, return the result, and write it back to Redis with a 24 hour TTL.
+
+I picked this because it keeps PostgreSQL as the source of truth while still making the hot redirect path fast.
+
+### PostgreSQL over MongoDB
+
+This data model is pretty relational:
+
+- one canonical `urls` table
+- one append-only `clicks` table
+- a clear lookup key in `short_code`
+- straightforward analytics queries like total clicks and recent clicks
+
+PostgreSQL felt like the better fit because I wanted constraints, indexes, and simple SQL aggregations.
+
+### Redis-backed rate limiting
+
+Each IP gets a Redis key in the form `ratelimit:{ip}`. I increment the key on each request, set a 60 second expiration on first touch, and return `429` once the count goes over 10.
+
+I like this approach because it is simple, fast, and easy to scale if the app ever moves beyond a single server.
+
+### Async analytics writes
+
+On redirect, I log analytics asynchronously instead of blocking the redirect on a database write. That keeps the user-facing path fast while still capturing useful metadata.
+
+## Database Schema
+
+### `urls`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| id | uuid | primary key |
+| short_code | varchar | unique |
+| original_url | text | original destination |
+| created_at | timestamp | creation timestamp |
+
+### `clicks`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| id | uuid | primary key |
+| short_code | varchar | references the shortened URL |
+| clicked_at | timestamp | click timestamp |
+| user_agent | text | browser/client info |
+| ip | varchar | client IP |
 
 ## Project Structure
 
@@ -160,7 +132,7 @@ README.md
 
 ## Local Setup
 
-1. Start infrastructure:
+1. Start Redis and PostgreSQL:
 
 ```bash
 docker compose up -d
@@ -191,7 +163,7 @@ npm start
 npm test
 ```
 
-6. Run the benchmark:
+6. Run the load test:
 
 ```bash
 npm run loadtest
@@ -199,7 +171,7 @@ npm run loadtest
 
 ## Environment Variables
 
-The root `.env` is prefilled for immediate local use:
+The local `.env` is set up so the project runs immediately on this machine:
 
 ```env
 DATABASE_URL=postgresql://postgres:postgres@localhost:5433/url_shortener
@@ -209,20 +181,78 @@ BASE_URL=http://localhost:8080
 CORS_ORIGIN=http://localhost:5173
 ```
 
-## AWS Deployment Status
+Note: PostgreSQL is mapped to `5433` locally because `5432` was already in use on my machine during setup.
 
-The app is deployed on Amazon Linux 2023 on a `t2.micro` EC2 instance in `us-east-1` and is running under `pm2`, with PostgreSQL and Redis managed by Docker Compose on the host.
+## Testing
 
-- EC2 public DNS: `ec2-34-235-118-239.compute-1.amazonaws.com`
-- Health check: `http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/health`
-- Live shorten endpoint: `http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/shorten`
-- Live demo short URL created during deployment verification: `http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/ZeDPCTY`
+I wrote Jest tests for:
 
-Deployment assets used:
+- URL validation
+- short-code generation
+- cache-aside lookup behavior
+- rate limiting
+- analytics route behavior
+
+Current test result:
+
+- `5` test suites passed
+- `9` tests passed
+
+## Load Test Results
+
+I used `autocannon` against the redirect endpoint with:
+
+- `100` concurrent connections
+- `30` second duration
+
+Measured result:
+
+| Metric | Result |
+| --- | --- |
+| Average requests/sec | `5998.77` |
+| p99 latency | `50 ms` |
+| Error rate | `0.00%` |
+| 3xx responses | `179931` |
+| 4xx responses | `0` |
+| 5xx responses | `0` |
+
+Raw output is in [results/loadtest.txt](/Users/kobeguo/Desktop/projects/url-shortener/results/loadtest.txt).
+
+## Deployment
+
+I deployed this on an Amazon Linux 2023 EC2 instance in `us-east-1`.
+
+Production setup:
+
+- Express backend managed with `pm2`
+- Redis and PostgreSQL running through Docker Compose on the EC2 host
+- React frontend built with Vite and served from the backend
+
+Deployment-related files:
 
 - [ecosystem.config.cjs](/Users/kobeguo/Desktop/projects/url-shortener/ecosystem.config.cjs)
 - [scripts/bootstrap-ec2.sh](/Users/kobeguo/Desktop/projects/url-shortener/scripts/bootstrap-ec2.sh)
 - [scripts/deploy-ec2.sh](/Users/kobeguo/Desktop/projects/url-shortener/scripts/deploy-ec2.sh)
 
-`Live demo URL`
-http://ec2-34-235-118-239.compute-1.amazonaws.com:8080/
+One thing I actually liked about this project is that deployment was not completely smooth, which made it more realistic:
+
+- I had to fix Docker Compose installation on Amazon Linux 2023
+- I had to debug a blank page issue caused by CSP upgrading HTTP asset requests to HTTPS on port `8080`
+- I had to add an HTTP-safe clipboard fallback because `navigator.clipboard` is restricted on non-secure origins
+
+That debugging work ended up being one of the most valuable parts of the project.
+
+## A Few Things I’d Improve Next
+
+If I kept iterating on this, I’d probably add:
+
+- a custom domain
+- HTTPS with Nginx or an Application Load Balancer
+- user accounts or ownership for short links
+- expiration policies for links
+- more detailed analytics
+- CI/CD for automated deployment
+
+## Repo
+
+GitHub: [https://github.com/KobeGuo99/url-shortener](https://github.com/KobeGuo99/url-shortener)
