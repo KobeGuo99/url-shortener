@@ -19,6 +19,14 @@ async function runMigrations(pool) {
   `);
 
   await pool.query(`
+    UPDATE clicks
+    SET user_agent = NULL,
+        ip = NULL
+    WHERE user_agent IS NOT NULL
+       OR ip IS NOT NULL;
+  `);
+
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_urls_short_code
     ON urls(short_code);
   `);

@@ -289,14 +289,10 @@ function App() {
                   <div className="divide-y divide-white/10 border-y border-white/10">
                     {analyticsResult.recentClicks.map((click) => (
                       <div
-                        className="grid gap-1 py-3 font-mono text-xs text-[#bdb7ab] sm:grid-cols-[150px_96px_1fr] sm:gap-3"
-                        key={`${click.clicked_at}-${click.ip}`}
+                        className="py-3 font-mono text-xs text-[#bdb7ab]"
+                        key={click.clicked_at}
                       >
                         <span>{formatTimestamp(click.clicked_at)}</span>
-                        <span>{click.ip || 'n/a'}</span>
-                        <span className="break-all text-[#8b867d]">
-                          {click.user_agent || 'Unknown client'}
-                        </span>
                       </div>
                     ))}
                   </div>

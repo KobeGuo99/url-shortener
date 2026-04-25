@@ -32,4 +32,12 @@ docker compose up -d
 pm2 delete linklift-backend || true
 pm2 start ecosystem.config.cjs
 pm2 save
+sudo env PATH=\$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u ec2-user --hp /home/ec2-user
+sudo mkdir -p /etc/systemd/system/pm2-ec2-user.service.d
+sudo tee /etc/systemd/system/pm2-ec2-user.service.d/override.conf >/dev/null <<'SYSTEMD'
+[Unit]
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+SYSTEMD
+sudo systemctl daemon-reload
 EOF

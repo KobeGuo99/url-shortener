@@ -2,13 +2,13 @@ const { v4: uuidv4 } = require('uuid');
 
 function createClickRepository(pool) {
   return {
-    async create({ shortCode, userAgent, ip }) {
+    async create({ shortCode }) {
       await pool.query(
         `
-          INSERT INTO clicks (id, short_code, user_agent, ip)
-          VALUES ($1, $2, $3, $4);
+          INSERT INTO clicks (id, short_code)
+          VALUES ($1, $2);
         `,
-        [uuidv4(), shortCode, userAgent || null, ip || null],
+        [uuidv4(), shortCode],
       );
     },
 
@@ -24,7 +24,7 @@ function createClickRepository(pool) {
 
       const recentClicksResult = await pool.query(
         `
-          SELECT short_code, clicked_at, user_agent, ip
+          SELECT short_code, clicked_at
           FROM clicks
           WHERE short_code = $1
           ORDER BY clicked_at DESC

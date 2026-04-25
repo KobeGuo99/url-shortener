@@ -59,19 +59,10 @@ function buildRouter({ urlService, analyticsService, rateLimiter, staticDir }) {
 
   app.get('/:code', rateLimiter, asyncHandler(async (req, res) => {
     const record = await urlService.getOriginalUrl(req.params.code);
-    const userAgent = req.get('user-agent');
-    const forwardedFor = req.headers['x-forwarded-for'];
-    const ip = Array.isArray(forwardedFor)
-      ? forwardedFor[0]
-      : typeof forwardedFor === 'string'
-        ? forwardedFor.split(',')[0].trim()
-        : req.ip;
 
     setImmediate(() => {
       analyticsService.recordClick({
         shortCode: req.params.code,
-        userAgent,
-        ip,
       }).catch((error) => {
         console.error('Failed to record click analytics:', error.message);
       });

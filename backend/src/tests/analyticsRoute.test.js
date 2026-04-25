@@ -12,8 +12,6 @@ describe('GET /analytics/:code', () => {
           {
             short_code: 'abc1234',
             clicked_at: '2026-04-23T12:00:00.000Z',
-            user_agent: 'Jest',
-            ip: '127.0.0.1',
           },
         ],
       }),
@@ -34,6 +32,10 @@ describe('GET /analytics/:code', () => {
     expect(response.status).toBe(200);
     expect(response.body.totalClicks).toBe(14);
     expect(response.body.recentClicks).toHaveLength(1);
+    expect(response.body.recentClicks[0]).toEqual({
+      short_code: 'abc1234',
+      clicked_at: '2026-04-23T12:00:00.000Z',
+    });
     expect(analyticsService.getAnalytics).toHaveBeenCalledWith('abc1234');
   });
 });
