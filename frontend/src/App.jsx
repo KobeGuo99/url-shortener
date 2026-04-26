@@ -21,10 +21,25 @@ function extractCode(value) {
 }
 
 function formatTimestamp(value) {
+  if (!value) {
+    return 'No clicks yet';
+  }
+
   return new Intl.DateTimeFormat('en-US', {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+function formatShortDate(value) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(`${value}T00:00:00`));
+}
+
+function getLargestClickCount(items = []) {
+  return Math.max(1, ...items.map((item) => item.clicks || 0));
 }
 
 function App() {
@@ -264,18 +279,101 @@ function App() {
 
           {analyticsResult ? (
             <div className="mt-5 space-y-5 opacity-100 transition-opacity">
-              <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
+              <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
                 <div className="min-w-0">
                   <p className="mb-1 text-xs text-[#8b867d]">Destination</p>
                   <p className="break-all font-mono text-sm text-[#d7d2c7]">
                     {analyticsResult.originalUrl}
                   </p>
                 </div>
-                <div className="rounded-lg border border-white/10 bg-[#151515] px-4 py-3 sm:min-w-28">
-                  <p className="text-xs text-[#8b867d]">Total clicks</p>
-                  <p className="mt-1 text-3xl font-semibold text-[#f3f0e9]">
-                    {analyticsResult.totalClicks}
+                <div className="grid grid-cols-3 gap-2 sm:min-w-[300px]">
+                  <div className="rounded-lg border border-white/10 bg-[#151515] px-3 py-3">
+                    <p className="text-xs text-[#8b867d]">Clicks</p>
+                    <p className="mt-1 text-2xl font-semibold text-[#f3f0e9]">
+                      {analyticsResult.totalClicks}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-[#151515] px-3 py-3">
+                    <p className="text-xs text-[#8b867d]">Created</p>
+                    <p className="mt-1 text-xs font-medium text-[#d7d2c7]">
+                      {formatTimestamp(analyticsResult.createdAt)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-[#151515] px-3 py-3">
+                    <p className="text-xs text-[#8b867d]">Last click</p>
+                    <p className="mt-1 text-xs font-medium text-[#d7d2c7]">
+                      {formatTimestamp(analyticsResult.lastClickedAt)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-white/10 bg-[#151515] p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-xs text-[#8b867d]">Last 7 days</p>
+                  <p className="font-mono text-xs text-[#68645d]">
+                    {analyticsResult.clickTrend?.reduce((sum, item) => sum + item.clicks, 0) || 0} clicks
                   </p>
+                </div>
+                <div className="grid h-28 grid-cols-7 items-end gap-2">
+                  {(analyticsResult.clickTrend || []).map((item) => {
+                    const height = `${Math.max(8, (item.clicks / getLargestClickCount(analyticsResult.clickTrend)) * 100)}%`;
+
+                    return (
+                      <div className="flex h-full flex-col justify-end gap-2" key={item.date}>
+                        <div
+                          className="min-h-2 rounded-t bg-[#4f8ef7]/80"
+                          title={`${item.clicks} clicks`}
+                          style={{ height }}
+                        />
+                        <span className="truncate text-center text-[10px] text-[#8b867d]">
+                          {formatShortDate(item.date)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="rounded-lg border border-white/10 bg-[#151515] p-4">
+                  <p className="mb-3 text-xs text-[#8b867d]">Top referrers</p>
+                  {analyticsResult.topReferrers?.length ? (
+                    <div className="space-y-2">
+                      {analyticsResult.topReferrers.map((item) => (
+                        <div className="flex items-center justify-between gap-3 text-xs" key={item.domain}>
+                          <span className="min-w-0 truncate font-mono text-[#d7d2c7]">{item.domain}</span>
+                          <span className="text-[#8b867d]">{item.clicks}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#68645d]">No external referrers yet.</p>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-white/10 bg-[#151515] p-4">
+                  <p className="mb-3 text-xs text-[#8b867d]">Devices</p>
+                  <div className="space-y-2">
+                    {(analyticsResult.deviceBreakdown || []).map((item) => (
+                      <div className="flex items-center justify-between gap-3 text-xs" key={item.label}>
+                        <span className="capitalize text-[#d7d2c7]">{item.label}</span>
+                        <span className="text-[#8b867d]">{item.clicks}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-white/10 bg-[#151515] p-4">
+                  <p className="mb-3 text-xs text-[#8b867d]">Browsers</p>
+                  <div className="space-y-2">
+                    {(analyticsResult.browserBreakdown || []).map((item) => (
+                      <div className="flex items-center justify-between gap-3 text-xs" key={item.label}>
+                        <span className="text-[#d7d2c7]">{item.label}</span>
+                        <span className="text-[#8b867d]">{item.clicks}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 

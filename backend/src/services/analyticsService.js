@@ -2,11 +2,12 @@ const { HttpError } = require('../utils/httpError');
 
 function createAnalyticsService({ urlRepository, clickRepository }) {
   return {
-    async recordClick({ shortCode, userAgent, ip }) {
+    async recordClick({ shortCode, referrerDomain, deviceCategory, browserFamily }) {
       await clickRepository.create({
         shortCode,
-        userAgent,
-        ip,
+        referrerDomain,
+        deviceCategory,
+        browserFamily,
       });
     },
 
@@ -22,8 +23,14 @@ function createAnalyticsService({ urlRepository, clickRepository }) {
       return {
         shortCode,
         originalUrl: urlRecord.original_url,
+        createdAt: urlRecord.created_at,
         totalClicks: summary.totalClicks,
+        lastClickedAt: summary.lastClickedAt,
         recentClicks: summary.recentClicks,
+        clickTrend: summary.clickTrend,
+        topReferrers: summary.topReferrers,
+        deviceBreakdown: summary.deviceBreakdown,
+        browserBreakdown: summary.browserBreakdown,
       };
     },
   };

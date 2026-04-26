@@ -8,6 +8,53 @@ const env = require('../config/env');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { notFoundHandler, errorHandler } = require('../middleware/errorHandler');
 
+function getReferrerDomain(value, ownHost) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const hostname = new URL(value).hostname.toLowerCase().replace(/^www\./, '');
+    const normalizedOwnHost = ownHost?.toLowerCase().replace(/^www\./, '');
+
+    return hostname && hostname !== normalizedOwnHost ? hostname : null;
+  } catch {
+    return null;
+  }
+}
+
+function getDeviceCategory(userAgent = '') {
+  const value = userAgent.toLowerCase();
+
+  if (!value) {
+    return 'unknown';
+  }
+
+  if (/bot|crawler|spider|slurp|preview|facebookexternalhit|linkedinbot/.test(value)) {
+    return 'bot';
+  }
+
+  if (/ipad|tablet|kindle|silk/.test(value)) {
+    return 'tablet';
+  }
+
+  if (/mobi|iphone|android/.test(value)) {
+    return 'mobile';
+  }
+
+  return 'desktop';
+}
+
+function getBrowserFamily(userAgent = '') {
+  if (/Edg\//.test(userAgent)) return 'Edge';
+  if (/OPR\//.test(userAgent)) return 'Opera';
+  if (/Chrome\//.test(userAgent) && !/Chromium\//.test(userAgent)) return 'Chrome';
+  if (/Safari\//.test(userAgent) && !/Chrome\//.test(userAgent)) return 'Safari';
+  if (/Firefox\//.test(userAgent)) return 'Firefox';
+
+  return 'Other';
+}
+
 function buildRouter({ urlService, analyticsService, rateLimiter, staticDir }) {
   const app = express();
 
@@ -16,6 +63,19 @@ function buildRouter({ urlService, analyticsService, rateLimiter, staticDir }) {
   app.use(
     pinoHttp({
       autoLogging: env.NODE_ENV !== 'test',
+      serializers: {
+        req(req) {
+          return {
+            method: req.method,
+            url: req.url,
+          };
+        },
+        res(res) {
+          return {
+            statusCode: res.statusCode,
+          };
+        },
+      },
     }),
   );
   app.use(
@@ -59,10 +119,14 @@ function buildRouter({ urlService, analyticsService, rateLimiter, staticDir }) {
 
   app.get('/:code', rateLimiter, asyncHandler(async (req, res) => {
     const record = await urlService.getOriginalUrl(req.params.code);
+    const userAgent = req.get('user-agent') || '';
 
     setImmediate(() => {
       analyticsService.recordClick({
         shortCode: req.params.code,
+        referrerDomain: getReferrerDomain(req.get('referer'), req.hostname),
+        deviceCategory: getDeviceCategory(userAgent),
+        browserFamily: getBrowserFamily(userAgent),
       }).catch((error) => {
         console.error('Failed to record click analytics:', error.message);
       });
@@ -85,4 +149,7 @@ function buildRouter({ urlService, analyticsService, rateLimiter, staticDir }) {
 
 module.exports = {
   buildRouter,
+  getBrowserFamily,
+  getDeviceCategory,
+  getReferrerDomain,
 };

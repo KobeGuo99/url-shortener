@@ -14,8 +14,18 @@ async function runMigrations(pool) {
       short_code VARCHAR(32) NOT NULL REFERENCES urls(short_code) ON DELETE CASCADE,
       clicked_at TIMESTAMP NOT NULL DEFAULT NOW(),
       user_agent TEXT,
-      ip VARCHAR(128)
+      ip VARCHAR(128),
+      referrer_domain VARCHAR(255),
+      device_category VARCHAR(32),
+      browser_family VARCHAR(32)
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE clicks
+      ADD COLUMN IF NOT EXISTS referrer_domain VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS device_category VARCHAR(32),
+      ADD COLUMN IF NOT EXISTS browser_family VARCHAR(32);
   `);
 
   await pool.query(`
